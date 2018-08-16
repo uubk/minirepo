@@ -32,6 +32,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"io"
 )
 
 // Minirepo client
@@ -171,7 +172,13 @@ func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 		return "", fmt.Errorf("file download failed: %s", err)
 	}
 
-	hashSum := hex.EncodeToString(sha256.New().Sum(fileContent))
+	hash := sha256.New()
+	_, err = io.Copy(hash, bytes.NewReader(fileContent))
+	if err != nil {
+		return "", fmt.Errorf("checksum comparison failed")
+	}
+
+	hashSum := hex.EncodeToString(hash.Sum(nil))
 	if hashSum != curEntry.Hash || hashSum == "" {
 		return "", fmt.Errorf("checksum mismatch")
 	}

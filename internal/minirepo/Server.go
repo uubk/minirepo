@@ -32,6 +32,7 @@ import (
 	"os"
 	"path"
 	"time"
+	"io"
 )
 
 // Server contains the functionality of minirepo's commandline interface
@@ -144,14 +145,20 @@ func (s *Server) readDir(dir string) types.DirEntry {
 			myEntry.Children = append(myEntry.Children, s.readDir(path.Join(dir, item.Name())))
 		} else {
 			file := path.Join(dir, item.Name())
-			fileContent, err := ioutil.ReadFile(file)
+			fd, err := os.Open(file)
 			if err != nil {
 				log.WithField("file", file).WithError(err).Fatal("Couldn't read file")
 			}
-			hashSum := sha256.New().Sum(fileContent)
+			hash := sha256.New()
+			_, err = io.Copy(hash, fd)
+			if err != nil {
+				log.WithField("file", file).WithError(err).Fatal("Couldn't copy file to hash function")
+			}
+			fd.Close()
+
 			myEntry.Children = append(myEntry.Children, types.DirEntry{
 				Name: item.Name(),
-				Hash: hex.EncodeToString(hashSum),
+				Hash: hex.EncodeToString(hash.Sum(nil)),
 			})
 		}
 	}

@@ -1,0 +1,1 @@
+- Memory safety: Both server and client will buffer arbitrary files in memory -> DoS
