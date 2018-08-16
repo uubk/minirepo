@@ -1,6 +1,7 @@
 # Minirepo
 A small tool and library to quickly set up binary repositories for your applications.
 
+[![Build Status](https://travis-ci.com/uubk/minirepo.svg?branch=master)](https://travis-ci.com/uubk/minirepo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/uubk/minirepo?style=flat)](https://goreportcard.com/report/github.com/uubk/minirepo)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/uubk/minirepo)
 [![Release](https://img.shields.io/github/release/uubk/minirepo.svg?style=flat)](https://github.com/uubk/minirepo/releases/latest)
