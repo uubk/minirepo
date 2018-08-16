@@ -20,9 +20,9 @@ import (
 	"flag"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
+	minirepo2 "github.com/uubk/minirepo/internal/minirepo"
 	"os"
 	"path"
-	minirepo2 "github.com/uubk/minirepo/internal/minirepo"
 )
 
 func main() {

@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	log "github.com/sirupsen/logrus"
+	"github.com/uubk/minirepo/pkg/minirepo/types"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -30,7 +31,6 @@ import (
 	"os"
 	"path"
 	"time"
-	"github.com/uubk/minirepo/pkg/minirepo/types"
 )
 
 // Server contains the functionality of minirepo's commandline interface

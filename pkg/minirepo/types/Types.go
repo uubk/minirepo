@@ -23,9 +23,9 @@ import "time"
 //  - a child directory (Name and Children set)
 type DirEntry struct {
 	// Name of this entry
-	Name     string
+	Name string
 	// If this is a file, contains the SHA-256 hash of it in Hex encoding
-	Hash     string     `yaml:"hash,omitempty"`
+	Hash string `yaml:"hash,omitempty"`
 	// If this is a directory, contains a list of all children
 	Children []DirEntry `yaml:"children,omitempty"`
 }
@@ -33,9 +33,9 @@ type DirEntry struct {
 // RepoInfo contains the base repostitory info, that is some metadata and a list of the repositories' contents
 type RepoInfo struct {
 	// List of content (only directories at this level)
-	Contents  []DirEntry
+	Contents []DirEntry
 	// Name of repository
-	Name      string
+	Name string
 	// Timestamp of last update
 	Timestamp time.Time
 }

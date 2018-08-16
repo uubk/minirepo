@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/uubk/minirepo/pkg/minirepo/types"
 	"golang.org/x/crypto/openpgp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -30,7 +31,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"github.com/uubk/minirepo/pkg/minirepo/types"
 )
 
 // Minirepo client
@@ -38,11 +38,11 @@ type Minirepo struct {
 	// Local cache directory
 	localCache string
 	// Remote origin URL
-	remote     string
+	remote string
 	// ASCII-armored pubkey for signatures
 	signingKey string
 	// Parsed repository metadata, if available
-	meta       *types.RepoInfo
+	meta *types.RepoInfo
 }
 
 // NewRepoClient creates a new minirepo client.
@@ -85,22 +85,14 @@ func (m *Minirepo) GetFileLatest(filePath ...string) (bool, string, error) {
 	return false, fileRef, err
 }
 
-// GetFile returns a local path to the file requested if possible
-func (m *Minirepo) GetFile(filePath ...string) (string, error) {
-	if m.meta == nil {
-		return "", errors.New("no metadata available")
-	}
-
-	if len(filePath) == 0 {
-		return "", errors.New("no path specified")
-	}
-
+// findFile searches for the file in the repositories metadata section
+func (m *Minirepo) findFile(filePath ...string) (*types.DirEntry, error) {
 	var curEntry *types.DirEntry
 	for _, item := range filePath {
 		if item == "" {
-			return "", errors.New("invalid path part: empty string")
+			return nil, errors.New("invalid path part: empty string")
 		}
- 		if curEntry == nil {
+		if curEntry == nil {
 			for _, otherItem := range m.meta.Contents {
 				if otherItem.Name == item {
 					curEntry = &otherItem
@@ -109,7 +101,7 @@ func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 			}
 			if curEntry == nil {
 				// Didn't find anything
-				return "", errors.New("file not found")
+				return nil, errors.New("file not found")
 			}
 		} else {
 			found := false
@@ -121,22 +113,40 @@ func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 				}
 			}
 			if !found {
-				return "", errors.New("file not found")
+				return nil, errors.New("file not found")
 			}
 		}
 	}
 	// curEntry contains full metadata and the file should exist
+	return curEntry, nil
+}
+
+// GetFile returns a local path to the file requested if possible
+func (m *Minirepo) GetFile(filePath ...string) (string, error) {
+	if m.meta == nil {
+		return "", errors.New("no metadata available")
+	}
+
+	if len(filePath) == 0 {
+		return "", errors.New("no path specified")
+	}
+
+	// Find file in metadata
+	curEntry, err := m.findFile(filePath...)
+	if err != nil {
+		return "", err
+	}
 
 	// Did we already fetch this file?
 	fileFullPath := []string{m.localCache}
 	fileFullPath = append(fileFullPath, filePath...)
 	fileRef := path.Join(fileFullPath...)
-	_, err := os.Stat(fileRef)
+	_, err = os.Stat(fileRef)
 	if err == nil {
 		return fileRef, nil
 	}
 
-	// Nope, file does not exist
+	// Nope, file does not exist -> fetch it and check signature
 	fileUrl := m.remote
 	for _, segment := range filePath {
 		fileUrl += "/" + url.PathEscape(segment)

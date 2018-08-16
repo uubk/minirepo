@@ -17,16 +17,16 @@
 package minirepo
 
 import (
-	"testing"
+	"crypto/rand"
+	"github.com/uubk/minirepo/internal/minirepo"
+	"golang.org/x/sys/unix"
+	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"path"
-	"github.com/uubk/minirepo/internal/minirepo"
-	"io/ioutil"
-	"crypto/rand"
-	"net/http"
-	"net"
-	"golang.org/x/sys/unix"
 	"strings"
+	"testing"
 )
 
 func generateTestAssets(dir string) {
@@ -57,11 +57,10 @@ func provideTestServer(root string) (string, *http.Server) {
 		panic(err)
 	}
 
-	srv := &http.Server {
-	}
-	go func () {
+	srv := &http.Server{}
+	go func() {
 		srv.Serve(listener)
-	} ()
+	}()
 
 	return listener.Addr().String(), srv
 }
@@ -80,11 +79,10 @@ func InitTestClient() (*Minirepo, *http.Server, error) {
 
 	clientPath := path.Join(testPath, "client")
 	os.Mkdir(clientPath, 0700)
-	client, err := NewRepoClient(clientPath, "http://" +bindAddr, string(pubkeyBin))
+	client, err := NewRepoClient(clientPath, "http://"+bindAddr, string(pubkeyBin))
 	if err != nil {
 		return nil, nil, err
 	}
-
 
 	return client, server, nil
 }
@@ -144,7 +142,7 @@ func TestFileDownloadFresh(t *testing.T) {
 }
 
 func TestFileDownloadErrors(t *testing.T) {
-	err, client, server := InitTestClient()
+	client, server, err := InitTestClient()
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}
@@ -189,10 +187,18 @@ func TestFileDownloadErrors(t *testing.T) {
 	if filePath != "" {
 		t.Fatal("Unexpectedly got a path?")
 	}
+}
+
+func TestFileDownloadErrorsPermissions(t *testing.T) {
+	client, server, err := InitTestClient()
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	defer server.Shutdown(nil)
 
 	// Make directory unwritable
 	// First try should work
-	filePath, err = client.GetFile("a_dir", "testfile")
+	filePath, err := client.GetFile("a_dir", "testfile")
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}
@@ -200,7 +206,7 @@ func TestFileDownloadErrors(t *testing.T) {
 		t.Fatal("Unexpectedly empty path")
 	}
 	os.Chmod(path.Dir(filePath), unix.O_RDONLY)
-    // Second try shouldn't
+	// Second try shouldn't
 	_, filePath, err = client.GetFileLatest("a_dir", "testfile")
 	if err == nil {
 		t.Fatal("Expected error missing")
