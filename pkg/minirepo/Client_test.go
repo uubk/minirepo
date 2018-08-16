@@ -1,84 +1,210 @@
 package minirepo
 
-import "testing"
+import (
+	"testing"
+	"os"
+	"path"
+	"github.com/uubk/minirepo/internal/minirepo"
+	"io/ioutil"
+	"crypto/rand"
+	"net/http"
+	"net"
+	"golang.org/x/sys/unix"
+	"strings"
+)
+
+
+func generateTestAssets(dir string) {
+	err := os.MkdirAll(path.Join(dir, "repo"), 0700)
+	if err != nil {
+		panic(err)
+	}
+	err = os.MkdirAll(path.Join(dir, "repo", "a_dir"), 0700)
+	if err != nil {
+		panic(err)
+	}
+
+	repoRoot := path.Join(dir, "repo")
+	svc := minirepo.NewServer(dir, repoRoot, "Unittest Server")
+	svc.GenerateKeypair()
+	svc.LoadKeypair()
+
+	randomData := make([]byte, 256)
+	rand.Read(randomData)
+	ioutil.WriteFile(path.Join(repoRoot, "a_dir", "testfile"), randomData, 0700)
+	svc.UpdateMetadata()
+}
+
+func provideTestServer(root string) (string, *http.Server) {
+	http.Handle("/", http.FileServer(http.Dir(root)))
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+
+	srv := &http.Server {
+	}
+	go func () {
+		srv.Serve(listener)
+	} ()
+
+	return listener.Addr().String(), srv
+}
+
+func InitTestClient() (error, *Minirepo, *http.Server) {
+	testPath, err := ioutil.TempDir("", "minirepo-unittest")
+	if err != nil {
+		return err, nil, nil
+	}
+	generateTestAssets(testPath)
+	pubkeyBin, err := ioutil.ReadFile(path.Join(testPath, "pub.asc"))
+	if err != nil {
+		return err, nil, nil
+	}
+	bindAddr, server := provideTestServer(path.Join(testPath, "repo"))
+
+	clientPath := path.Join(testPath, "client")
+	os.Mkdir(clientPath, 0700)
+	client, err := NewRepoClient(clientPath, "http://" +bindAddr, string(pubkeyBin))
+	if err != nil {
+		return err, nil, nil
+	}
+
+
+	return nil, client, server
+}
 
 func TestMetaDownload(t *testing.T) {
-	uut := NewRepoClient("/tmp", "http://127.0.0.1:8080", `-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-xsBNBFt1Wl8BCADFae0S0pdNG1EtYt4+NUyhZtLRsy6AMPGxfbalVjIYJ/w7k0hl
-hXEs8r7f6/rcSeF0kFn1aOYsQK8KWzf/2XUnXozPsDZV4ohV0ke4TvKjMuFTIzEb
-BX8vs5Nxuq54GJSN0hNPBxMSlcuxm38AbBA9tr2qhSNbB9310+34sXIbcqN48DUt
-8811Htsq5CI/mSvHhfEd2Yp9hLkOtLGl225sPRSoVhCoa8WUSrffRrGVPjDUCNeH
-lV+wj7Vic2fTSWJEhRIE3WzvG0UrwLT9xXQIpDLJLomr7dZZ1UTvyZO80Y3J+fFs
-Dk3WKaitVlow1Dk06ifFnF5QUmuGRQG4zRXDABEBAAHNGG1pbmlyZXBvIChBdXRv
-Z2VuZXJhdGVkKcLAYgQTAQkAFgUCW3VaXwkQwX/uVu8e1nQCGwMCGQEAAPOoCAAv
-RcRatNjmPal8gFqbxMo0rRIa6zqMpyGkUekfW6MQIVWCmH0uMjkq6p+lm8CG91+T
-/NhtpDZD4uh5JSS5YwR/M1QKd6YbwIc5ZbbEZoRwJ3VS08AHm1xTt6IXSdj0nxnX
-J/BxmZ0WJLu3ORbk+fsxjCVbXstB/eJtFzgxZNKrtWWE8GktxeJHWhyXhNbmKwAW
-us2BerAuATAlSk2M/WAW1s8/OuAasXh13PRVeMPc8NVTpZxxh9zJuGpp+Tf9lwwS
-PtwCPRalK4II+/aODxkP+FiPb2mDTbegDz+tVY8mLhRQ3KbSzTv9Sh0FEdufLF0j
-2U0NJnOFRfYjdBQ1Vby7zsBNBFt1Wl8BCAC8fO6x3LC5Jo15drM2IlCKUKnX7Hrp
-GiuXZeEL8G0R5f87tbvXKCJ2e+ZveaDC1XfFGGC9EkuIpNIzp2kQ6sX3kZ1etOt6
-AU+Aj/SAp78b5OHXMyr4W94HXj7pjJ1N3uEoy/Z52HBYm+TJ60BIor3AJp2L4Q0g
-pwlasusjvCbxSMSRBq3cxpyUv3B8EONrN9uIJ8lg5Gm/11/BzbfxMDYbbNi3qnm9
-I4PBzpk6RHiSFgkHezkWlYapoSfzlceK4/ArFkDCgJH47AZaeRcS3CAu+vLCAbkS
-luZ32uN0dQsC79eu+he2Nr1Q7Ik3ZBg0Z4kXY/QxxkFU9oAOsrH6Ip8tABEBAAHC
-wF8EGAEJABMFAlt1Wl8JEMF/7lbvHtZ0AhsMAABjjQgAM6av5av0WCQqNc/lFhRL
-SdrmyuQOWAkY00/tomvsBpvpuQl9mvge77mrzKWAkIWNxFMBdssZ7/BTzBlBQt7/
-bqvDdI9tbMb2q2o86oLbjEHaNb4wLF6QTaif2eovpA/eHUFj/3GO+RwUWN2wYrRz
-T584BMKEqIKxk4lBACzYVCoapzWnm/cULUGtfzps0TdyoqieWpaBFbw0/6Bt0rVq
-hh1J4XZBoQuv9DbRsBWdExx1kISddmmNwTqm7ZZhyZdhdSVCWYfLlORiG6e0g3ro
-cXON3imVgTBW7VkbDic6B8XVDvVY5pmkvB/HNtkTfGyb6EnaMCscfO3ipnNhXa4Q
-FQ==
-=Le4N
------END PGP PUBLIC KEY BLOCK-----`)
-	err := uut.fetchMeta()
+	err, _, server := InitTestClient()
 	if err != nil {
-		t.Fatal("Unexpected error:", err)
+		t.Fatal("Unexpected error: ", err)
 	}
+	server.Shutdown(nil)
 }
 
 func TestFileDownload(t *testing.T) {
-	uut := NewRepoClient("/tmp", "http://127.0.0.1:8080", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	err, client, server := InitTestClient()
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	defer server.Shutdown(nil)
 
-xsBNBFt1Wl8BCADFae0S0pdNG1EtYt4+NUyhZtLRsy6AMPGxfbalVjIYJ/w7k0hl
-hXEs8r7f6/rcSeF0kFn1aOYsQK8KWzf/2XUnXozPsDZV4ohV0ke4TvKjMuFTIzEb
-BX8vs5Nxuq54GJSN0hNPBxMSlcuxm38AbBA9tr2qhSNbB9310+34sXIbcqN48DUt
-8811Htsq5CI/mSvHhfEd2Yp9hLkOtLGl225sPRSoVhCoa8WUSrffRrGVPjDUCNeH
-lV+wj7Vic2fTSWJEhRIE3WzvG0UrwLT9xXQIpDLJLomr7dZZ1UTvyZO80Y3J+fFs
-Dk3WKaitVlow1Dk06ifFnF5QUmuGRQG4zRXDABEBAAHNGG1pbmlyZXBvIChBdXRv
-Z2VuZXJhdGVkKcLAYgQTAQkAFgUCW3VaXwkQwX/uVu8e1nQCGwMCGQEAAPOoCAAv
-RcRatNjmPal8gFqbxMo0rRIa6zqMpyGkUekfW6MQIVWCmH0uMjkq6p+lm8CG91+T
-/NhtpDZD4uh5JSS5YwR/M1QKd6YbwIc5ZbbEZoRwJ3VS08AHm1xTt6IXSdj0nxnX
-J/BxmZ0WJLu3ORbk+fsxjCVbXstB/eJtFzgxZNKrtWWE8GktxeJHWhyXhNbmKwAW
-us2BerAuATAlSk2M/WAW1s8/OuAasXh13PRVeMPc8NVTpZxxh9zJuGpp+Tf9lwwS
-PtwCPRalK4II+/aODxkP+FiPb2mDTbegDz+tVY8mLhRQ3KbSzTv9Sh0FEdufLF0j
-2U0NJnOFRfYjdBQ1Vby7zsBNBFt1Wl8BCAC8fO6x3LC5Jo15drM2IlCKUKnX7Hrp
-GiuXZeEL8G0R5f87tbvXKCJ2e+ZveaDC1XfFGGC9EkuIpNIzp2kQ6sX3kZ1etOt6
-AU+Aj/SAp78b5OHXMyr4W94HXj7pjJ1N3uEoy/Z52HBYm+TJ60BIor3AJp2L4Q0g
-pwlasusjvCbxSMSRBq3cxpyUv3B8EONrN9uIJ8lg5Gm/11/BzbfxMDYbbNi3qnm9
-I4PBzpk6RHiSFgkHezkWlYapoSfzlceK4/ArFkDCgJH47AZaeRcS3CAu+vLCAbkS
-luZ32uN0dQsC79eu+he2Nr1Q7Ik3ZBg0Z4kXY/QxxkFU9oAOsrH6Ip8tABEBAAHC
-wF8EGAEJABMFAlt1Wl8JEMF/7lbvHtZ0AhsMAABjjQgAM6av5av0WCQqNc/lFhRL
-SdrmyuQOWAkY00/tomvsBpvpuQl9mvge77mrzKWAkIWNxFMBdssZ7/BTzBlBQt7/
-bqvDdI9tbMb2q2o86oLbjEHaNb4wLF6QTaif2eovpA/eHUFj/3GO+RwUWN2wYrRz
-T584BMKEqIKxk4lBACzYVCoapzWnm/cULUGtfzps0TdyoqieWpaBFbw0/6Bt0rVq
-hh1J4XZBoQuv9DbRsBWdExx1kISddmmNwTqm7ZZhyZdhdSVCWYfLlORiG6e0g3ro
-cXON3imVgTBW7VkbDic6B8XVDvVY5pmkvB/HNtkTfGyb6EnaMCscfO3ipnNhXa4Q
-FQ==
-=Le4N
------END PGP PUBLIC KEY BLOCK-----`)
-	err := uut.fetchMeta()
+	filePath, err := client.GetFile("a_dir", "testfile")
 	if err != nil {
-		t.Fatal("Unexpected error:", err)
+		t.Fatal("Unexpected error: ", err)
 	}
-	err = uut.decodeMeta()
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
+}
+
+func TestFileDownloadFresh(t *testing.T) {
+	err, client, server := InitTestClient()
 	if err != nil {
-		t.Fatal("Unexpected error:", err)
+		t.Fatal("Unexpected error: ", err)
 	}
-	file, err := uut.GetFile("foo", "bar", "test")
+	defer server.Shutdown(nil)
+
+	refreshed, filePath, err := client.GetFileLatest("a_dir", "testfile")
 	if err != nil {
-		t.Fatal("Unexpected error:", err)
+		t.Fatal("Unexpected error: ", err)
 	}
-	print(file)
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
+	if refreshed {
+		t.Fatal("First download shouldn't have 'refreshed' flag set")
+	}
+
+	refreshed, filePath, err = client.GetFileLatest("a_dir", "testfile")
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
+	if !refreshed {
+		t.Fatal("Second download should have 'refreshed' flag set")
+	}
+}
+
+func TestFileDownloadErrors(t *testing.T) {
+	err, client, server := InitTestClient()
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	defer server.Shutdown(nil)
+
+	filePath, err := client.GetFile("a_dir", "no_file")
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if err.Error() != "file not found" {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath != "" {
+		t.Fatal("Unexpectedly got a path?")
+	}
+
+	filePath, err = client.GetFile("no_dir", "no_file")
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if err.Error() != "file not found" {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath != "" {
+		t.Fatal("Unexpectedly got a path?")
+	}
+
+	filePath, err = client.GetFile()
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if err.Error() != "no path specified" {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath != "" {
+		t.Fatal("Unexpectedly got a path?")
+	}
+
+	filePath, err = client.GetFile("", "")
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if err.Error() != "invalid path part: empty string" {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath != "" {
+		t.Fatal("Unexpectedly got a path?")
+	}
+
+	// Make directory unwritable
+	// First try should work
+	filePath, err = client.GetFile("a_dir", "testfile")
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
+	os.Chmod(path.Dir(filePath), unix.O_RDONLY)
+    // Second try shouldn't
+	_, filePath, err = client.GetFileLatest("a_dir", "testfile")
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if !strings.HasSuffix(err.Error(), "a_dir/testfile: permission denied") {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
+
+	// Directory should be missing and also not be creatable
+	client.localCache = "/proc"
+	filePath, err = client.GetFile("a_dir", "testfile")
+	if err == nil {
+		t.Fatal("Expected error missing")
+	} else if err.Error() != "open /proc/a_dir/testfile: no such file or directory" {
+		t.Fatal("Unxpected error: ", err)
+	}
+	if filePath == "" {
+		t.Fatal("Unexpectedly empty path")
+	}
 }

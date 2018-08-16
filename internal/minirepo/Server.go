@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	log "github.com/sirupsen/logrus"
-	"github.com/uubk/minirepo/pkg/minirepo"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -15,6 +14,7 @@ import (
 	"os"
 	"path"
 	"time"
+	"github.com/uubk/minirepo/pkg/minirepo/types"
 )
 
 // Minirepo Server
@@ -113,13 +113,13 @@ func (s *Server) GenerateKeypair() {
 }
 
 // Read the directory 'dir', returing it's contents as a directory entry
-func (s *Server) readDir(dir string) minirepo.DirEntry {
+func (s *Server) readDir(dir string) types.DirEntry {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.WithField("path", dir).WithError(err).Fatal("Couldn't read directory")
 	}
 	_, name := path.Split(dir)
-	myEntry := minirepo.DirEntry{
+	myEntry := types.DirEntry{
 		Name: name,
 	}
 	for _, item := range files {
@@ -132,7 +132,7 @@ func (s *Server) readDir(dir string) minirepo.DirEntry {
 				log.WithField("file", file).WithError(err).Fatal("Couldn't read file")
 			}
 			hashSum := sha256.New().Sum(fileContent)
-			myEntry.Children = append(myEntry.Children, minirepo.DirEntry{
+			myEntry.Children = append(myEntry.Children, types.DirEntry{
 				Name: item.Name(),
 				Hash: hex.EncodeToString(hashSum),
 			})
@@ -148,7 +148,7 @@ func (s *Server) UpdateMetadata() {
 		log.Fatal("You need to load the keys first!")
 	}
 
-	repoStruct := minirepo.RepoInfo{
+	repoStruct := types.RepoInfo{
 		Name:      s.name,
 		Timestamp: time.Now(),
 	}

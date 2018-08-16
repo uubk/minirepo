@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"github.com/uubk/minirepo/pkg/minirepo/types"
 )
 
 // Minirepo client
@@ -25,7 +26,7 @@ type Minirepo struct {
 	// ASCII-armored pubkey for signatures
 	signingKey string
 	// Parsed repository metadata, if available
-	meta       *RepoInfo
+	meta       *types.RepoInfo
 }
 
 // Creates a new minirepo client.
@@ -75,9 +76,16 @@ func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 		return "", errors.New("no metadata available")
 	}
 
-	var curEntry *DirEntry
+	if len(filePath) == 0 {
+		return "", errors.New("no path specified")
+	}
+
+	var curEntry *types.DirEntry
 	for _, item := range filePath {
-		if curEntry == nil {
+		if item == "" {
+			return "", errors.New("invalid path part: empty string")
+		}
+ 		if curEntry == nil {
 			for _, otherItem := range m.meta.Contents {
 				if otherItem.Name == item {
 					curEntry = &otherItem
@@ -142,7 +150,7 @@ func (m *Minirepo) decodeMeta() error {
 	if err != nil {
 		return fmt.Errorf("metadata read failed: %s", err)
 	}
-	m.meta = &RepoInfo{}
+	m.meta = &types.RepoInfo{}
 	return yaml.Unmarshal(metaBin, &m.meta)
 }
 

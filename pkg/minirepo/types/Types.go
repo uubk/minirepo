@@ -1,4 +1,4 @@
-package minirepo
+package types
 
 import "time"
 
