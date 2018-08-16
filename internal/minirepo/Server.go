@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// The internal minirepo package provides all types needed for implementing the command line interface
+// Package minirepo (internal) provides all types needed for implementing the command line interface
 package minirepo
 
 import (
