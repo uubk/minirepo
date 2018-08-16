@@ -34,7 +34,7 @@ timestamp: 2018-08-16T13:05:04.343849113+02:00
 To use this repository in a client, you would then do:
 ```
 client := NewRepoClient("/tmp", "http://127.0.0.1:8080", "<content of pub.asc>")
-file, err := client.GetFile("foo", "bar", "test)
+file, err := client.GetFile("foo", "bar", "test")
 ```
 
 ### Debugging hints
@@ -59,3 +59,6 @@ Primary key fingerprint: A6EB D286 E13E 9DE0 FA49  4BEA C17F EE56 EF1E D674
 gpg: binary signature, digest algorithm SHA256, key algorithm rsa2048
 ```
 The warning is expected as we didn't trust the key.
+
+## License
+Apache 2.0
