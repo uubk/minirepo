@@ -50,22 +50,30 @@ type Minirepo struct {
 //  - localCache is expected to contain a directory where the repository downloads should be cached
 //  - url is expected to contain a repositories upstream
 //  - key is expected to contain a full ASCII-armored GPG public key which was used for signing the metadata
-// This method will also fetch, validate and decode metadata
-func NewRepoClient(localCache, url, key string) (*Minirepo, error) {
+func NewRepoClient(localCache, url, key string) *Minirepo {
 	obj := Minirepo{
 		localCache: localCache,
 		remote:     url,
 		signingKey: key,
 	}
-	err := obj.fetchMeta()
+	return &obj
+}
+
+// TryUpdate will try to update the repository and load the metadata if either the repository was updated or a local
+// copy is available.
+func (m *Minirepo) TryUpdate() (bool, error) {
+	_, err := os.Stat(path.Join(m.localCache, "meta.yml"))
+	haveLocal := err == nil
+
+	err = m.fetchMeta()
 	if err != nil {
-		return nil, err
+		if !haveLocal {
+			return false, fmt.Errorf("fetch failed and no local copy: %s", err)
+		}
 	}
-	err = obj.decodeMeta()
-	if err != nil {
-		return nil, err
-	}
-	return &obj, nil
+	fetchSuccessful := err == nil
+
+	return fetchSuccessful, m.decodeMeta()
 }
 
 // GetFileLatest returns the *latest* version of a file, that is, it deletes a local copy before download, should it exist

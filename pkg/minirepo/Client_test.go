@@ -83,7 +83,8 @@ func InitTestClient() (*Minirepo, *http.Server, error) {
 
 	clientPath := path.Join(testPath, "client")
 	os.Mkdir(clientPath, 0700)
-	client, err := NewRepoClient(clientPath, "http://"+bindAddr, string(pubkeyBin))
+	client := NewRepoClient(clientPath, "http://"+bindAddr, string(pubkeyBin))
+	_, err = client.TryUpdate()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -231,5 +232,22 @@ func TestFileDownloadErrorsPermissions(t *testing.T) {
 	}
 	if filePath == "" {
 		t.Fatal("Unexpectedly empty path")
+	}
+}
+
+func TestTryUpdate(t *testing.T) {
+	client, server, err := InitTestClient()
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+	// Shutdown _now_
+	server.Shutdown(nil)
+
+	isFresh, err := client.TryUpdate()
+	if isFresh {
+		t.Fatal("Metadata should have been cached copy")
+	}
+	if err != nil {
+		t.Fatal("Unexpected error")
 	}
 }
