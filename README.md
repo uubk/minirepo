@@ -1,6 +1,10 @@
 # Minirepo
 A small tool and library to quickly set up binary repositories for your applications.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/uubk/minirepo?style=flat)](https://goreportcard.com/report/github.com/uubk/minirepo)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/uubk/minirepo)
+[![Release](https://img.shields.io/github/release/uubk/minirepo.svg?style=flat)](https://github.com/uubk/minirepo/releases/latest)
+
 ## Motivation
 Minirepo assumes that you want to serve something like the following structure to your application:
 ```

@@ -29,7 +29,6 @@ import (
 	"strings"
 )
 
-
 func generateTestAssets(dir string) {
 	err := os.MkdirAll(path.Join(dir, "repo"), 0700)
 	if err != nil {
@@ -67,15 +66,15 @@ func provideTestServer(root string) (string, *http.Server) {
 	return listener.Addr().String(), srv
 }
 
-func InitTestClient() (error, *Minirepo, *http.Server) {
+func InitTestClient() (*Minirepo, *http.Server, error) {
 	testPath, err := ioutil.TempDir("", "minirepo-unittest")
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	generateTestAssets(testPath)
 	pubkeyBin, err := ioutil.ReadFile(path.Join(testPath, "pub.asc"))
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	bindAddr, server := provideTestServer(path.Join(testPath, "repo"))
 
@@ -83,15 +82,15 @@ func InitTestClient() (error, *Minirepo, *http.Server) {
 	os.Mkdir(clientPath, 0700)
 	client, err := NewRepoClient(clientPath, "http://" +bindAddr, string(pubkeyBin))
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
 
-	return nil, client, server
+	return client, server, nil
 }
 
 func TestMetaDownload(t *testing.T) {
-	err, _, server := InitTestClient()
+	_, server, err := InitTestClient()
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}
@@ -99,7 +98,7 @@ func TestMetaDownload(t *testing.T) {
 }
 
 func TestFileDownload(t *testing.T) {
-	err, client, server := InitTestClient()
+	client, server, err := InitTestClient()
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}
@@ -115,7 +114,7 @@ func TestFileDownload(t *testing.T) {
 }
 
 func TestFileDownloadFresh(t *testing.T) {
-	err, client, server := InitTestClient()
+	client, server, err := InitTestClient()
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}

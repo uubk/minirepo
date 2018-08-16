@@ -45,7 +45,7 @@ type Minirepo struct {
 	meta       *types.RepoInfo
 }
 
-// Creates a new minirepo client.
+// NewRepoClient creates a new minirepo client.
 //  - localCache is expected to contain a directory where the repository downloads should be cached
 //  - url is expected to contain a repositories upstream
 //  - key is expected to contain a full ASCII-armored GPG public key which was used for signing the metadata
@@ -67,7 +67,7 @@ func NewRepoClient(localCache, url, key string) (*Minirepo, error) {
 	return &obj, nil
 }
 
-// Returns the *latest* version of a file, that is, it deletes a local copy before download, should it exist
+// GetFileLatest returns the *latest* version of a file, that is, it deletes a local copy before download, should it exist
 func (m *Minirepo) GetFileLatest(filePath ...string) (bool, string, error) {
 	fileFullPath := []string{m.localCache}
 	fileFullPath = append(fileFullPath, filePath...)
@@ -80,13 +80,12 @@ func (m *Minirepo) GetFileLatest(filePath ...string) (bool, string, error) {
 		}
 		fileRef, err := m.GetFile(filePath...)
 		return true, fileRef, err
-	} else {
-		fileRef, err := m.GetFile(filePath...)
-		return false, fileRef, err
 	}
+	fileRef, err = m.GetFile(filePath...)
+	return false, fileRef, err
 }
 
-// Returns a local path to the file requested if possible
+// GetFile returns a local path to the file requested if possible
 func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 	if m.meta == nil {
 		return "", errors.New("no metadata available")
@@ -160,7 +159,7 @@ func (m *Minirepo) GetFile(filePath ...string) (string, error) {
 	return fileRef, ioutil.WriteFile(fileRef, fileContent, 0600)
 }
 
-// Decode a local copy of the metadata file
+// decodeMeta decodes a local copy of the metadata file
 func (m *Minirepo) decodeMeta() error {
 	metaBin, err := ioutil.ReadFile(path.Join(m.localCache, "meta.yml"))
 	if err != nil {
@@ -170,7 +169,7 @@ func (m *Minirepo) decodeMeta() error {
 	return yaml.Unmarshal(metaBin, &m.meta)
 }
 
-// Fetch current metadata and write it to disk if and only if the signature is valid
+// fetchMeta fetches current metadata and write it to disk if and only if the signature is valid
 func (m *Minirepo) fetchMeta() error {
 	response, err := http.Get(m.remote + "/meta.yml")
 	if err != nil {

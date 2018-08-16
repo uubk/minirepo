@@ -33,7 +33,7 @@ import (
 	"github.com/uubk/minirepo/pkg/minirepo/types"
 )
 
-// Minirepo Server
+// Server contains the functionality of minirepo's commandline interface
 // This is supposed to be internal use only ;)
 // A Server abstracts the metadata file creation of a repository, including cryptographic operations.
 // The normal usage of this class would be:
@@ -55,7 +55,7 @@ type Server struct {
 	entity *openpgp.Entity
 }
 
-// Create a new minirepo server utility class
+// NewServer creates a new minirepo server utility class
 func NewServer(root, repo, name string) *Server {
 	return &Server{
 		root: root,
@@ -64,7 +64,7 @@ func NewServer(root, repo, name string) *Server {
 	}
 }
 
-// Load keypair from files
+// LoadKeypair loads a keypair from files
 func (s *Server) LoadKeypair() {
 	pubkeyFile := path.Join(s.root, "pub.asc")
 	privkeyFile := path.Join(s.root, "priv.asc")
@@ -73,7 +73,7 @@ func (s *Server) LoadKeypair() {
 	s.entity = fakeEntity(pubkey, privkey)
 }
 
-// Generate a new keypair for signing
+// GenerateKeypair generates a new keypair for signing
 func (s *Server) GenerateKeypair() {
 	pubkeyFile := path.Join(s.root, "pub.asc")
 	privkeyFile := path.Join(s.root, "priv.asc")
@@ -128,7 +128,7 @@ func (s *Server) GenerateKeypair() {
 	privkeyFD.Close()
 }
 
-// Read the directory 'dir', returing it's contents as a directory entry
+// readDir reads the directory 'dir', returing it's contents as a directory entry
 func (s *Server) readDir(dir string) types.DirEntry {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -158,7 +158,7 @@ func (s *Server) readDir(dir string) types.DirEntry {
 	return myEntry
 }
 
-// Update metadata, that is, load all files, calculate checksums, output YAML file and sign it
+// UpdateMetadata updates metadata, that is, loads all files, calculates checksums, outputs the YAML file and signs it
 func (s *Server) UpdateMetadata() {
 	if s.entity == nil {
 		log.Fatal("You need to load the keys first!")

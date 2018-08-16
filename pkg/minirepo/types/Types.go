@@ -18,14 +18,24 @@ package types
 
 import "time"
 
+// DirEntry contains a directory entry. This struct represents either
+//  - a single file (Name and Hash set) or
+//  - a child directory (Name and Children set)
 type DirEntry struct {
+	// Name of this entry
 	Name     string
+	// If this is a file, contains the SHA-256 hash of it in Hex encoding
 	Hash     string     `yaml:"hash,omitempty"`
+	// If this is a directory, contains a list of all children
 	Children []DirEntry `yaml:"children,omitempty"`
 }
 
+// RepoInfo contains the base repostitory info, that is some metadata and a list of the repositories' contents
 type RepoInfo struct {
+	// List of content (only directories at this level)
 	Contents  []DirEntry
+	// Name of repository
 	Name      string
+	// Timestamp of last update
 	Timestamp time.Time
 }

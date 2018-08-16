@@ -27,7 +27,7 @@ import (
 	"time"
 )
 
-// Loads an GPG ASCII-armored RSA key from 'file'. 'pubkey' decideds whether this is the public or the private part
+// loadKeyFromFile loads an GPG ASCII-armored RSA key from 'file'. 'pubkey' decideds whether this is the public or the private part
 func loadKeyFromFile(file string, pubkey bool) packet.Packet {
 	pubkeyFD, err := os.Open(file)
 	if err != nil {
@@ -64,32 +64,31 @@ func loadKeyFromFile(file string, pubkey bool) packet.Packet {
 			}).Fatal("Public key is not a public key")
 		}
 		return pkPacket
-	} else {
-		if res.Type != openpgp.PrivateKeyType {
-			log.WithFields(log.Fields{
-				"file": file,
-				"type": res.Type,
-			}).Fatal("Private key file didn't contain private key")
-		}
-		pkReader := packet.NewReader(res.Body)
-		pkPacket, err := pkReader.Next()
-		if res.Type != openpgp.PrivateKeyType {
-			log.WithFields(log.Fields{
-				"file": file,
-				"type": res.Type,
-			}).WithError(err).Fatal("Couldn't read private key packet")
-		}
-		_, ok := pkPacket.(*packet.PrivateKey)
-		if !ok {
-			log.WithFields(log.Fields{
-				"file": file,
-			}).Fatal("Private key is not a private key")
-		}
-		return pkPacket
 	}
+	if res.Type != openpgp.PrivateKeyType {
+		log.WithFields(log.Fields{
+			"file": file,
+			"type": res.Type,
+		}).Fatal("Private key file didn't contain private key")
+	}
+	pkReader := packet.NewReader(res.Body)
+	pkPacket, err := pkReader.Next()
+	if res.Type != openpgp.PrivateKeyType {
+		log.WithFields(log.Fields{
+			"file": file,
+			"type": res.Type,
+		}).WithError(err).Fatal("Couldn't read private key packet")
+	}
+	_, ok := pkPacket.(*packet.PrivateKey)
+	if !ok {
+		log.WithFields(log.Fields{
+			"file": file,
+		}).Fatal("Private key is not a private key")
+	}
+	return pkPacket
 }
 
-// Create a fake opengpg.Entity from a public and private key that can be used to sign files
+// fakeEntity creates a fake opengpg.Entity from a public and private key that can be used to sign files
 func fakeEntity(pubkey *packet.PublicKey, privkey *packet.PrivateKey) *openpgp.Entity {
 	cfg := packet.Config{
 		DefaultCipher:          packet.CipherAES128,
