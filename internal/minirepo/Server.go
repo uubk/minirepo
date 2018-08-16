@@ -28,11 +28,11 @@ import (
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"time"
-	"io"
 )
 
 // Server contains the functionality of minirepo's commandline interface

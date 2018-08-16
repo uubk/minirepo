@@ -26,13 +26,13 @@ import (
 	"github.com/uubk/minirepo/pkg/minirepo/types"
 	"golang.org/x/crypto/openpgp"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strings"
-	"io"
 )
 
 // Minirepo client
