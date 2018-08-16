@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// The internal minirepo package provides all types needed for implementing the command line interface
 package minirepo
 
 import (
@@ -37,11 +38,11 @@ import (
 // This is supposed to be internal use only ;)
 // A Server abstracts the metadata file creation of a repository, including cryptographic operations.
 // The normal usage of this class would be:
-// ```
-// obj := NewServer(...)
-// obj.LoadKeypair()
-// obj.UpdateMetadata()
-// ```
+//
+//	obj := NewServer(...)
+//	obj.LoadKeypair()
+//	obj.UpdateMetadata()
+//
 //
 type Server struct {
 	// Server root. This is where the key material will be stored

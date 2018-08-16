@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package minirepo provides a client for minirepo repositories
 package minirepo
 
 import (

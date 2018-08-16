@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Types contains the types visible inside a repository (to avoid cyclic includes)
 package types
 
 import "time"
