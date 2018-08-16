@@ -51,13 +51,17 @@ func generateTestAssets(dir string) {
 }
 
 func provideTestServer(root string) (string, *http.Server) {
-	http.Handle("/", http.FileServer(http.Dir(root)))
+	// In order for unittests to work reliably, _don't_ use global state!
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(root)))
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		panic(err)
 	}
 
-	srv := &http.Server{}
+	srv := &http.Server{
+		Handler: mux,
+	}
 	go func() {
 		srv.Serve(listener)
 	}()
