@@ -27,6 +27,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"context"
+	"time"
 )
 
 func generateTestAssets(dir string) {
@@ -198,7 +200,8 @@ func TestFileDownloadErrorsPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unexpected error: ", err)
 	}
-	defer server.Shutdown(nil)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	defer server.Shutdown(ctx)
 
 	// Make directory unwritable
 	// First try should work
